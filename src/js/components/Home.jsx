@@ -1,10 +1,28 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+
+
 
 // Crear tu primer componente
 const Home = () => {
     const [newTarea, setNewTarea] = useState("");
-    const [tareas, setTareas] = useState([""]);
+    const [tareas, setTareas] = useState([]);
     const [hoverIndex, setHoverIndex] = useState(null); // Para mostrar el botón al pasar el mouse
+
+    const getTodos= async() => {
+        try {
+            const response = await fetch ('https://playground.4geeks.com/todo/users/victor')
+            const data = await response.json()
+            setTareas(Array.isArray(data) ? data : [])
+
+    
+            
+        } catch (error) {
+            console.log(error)
+            
+        }
+    }
+
+
 
     function agregarTarea() {
         if (newTarea.trim() === "") return; // Evita agregar tareas vacías
@@ -16,6 +34,14 @@ const Home = () => {
         const nuevasTareas = tareas.filter((_, i) => i !== index);
         setTareas(nuevasTareas);
     }
+
+    function eliminarTodas() {
+        setTareas([]); // Vacía la lista de tareas
+    }
+
+    useEffect(() => {
+        getTodos()
+    }, [])
 
     return (
         <div className="m-auto text-center w-50">
@@ -44,12 +70,15 @@ const Home = () => {
                                 className="btn btn-danger btn-sm"
                                 onClick={() => eliminarTarea(index)}
                             >
-                                x
+                                DEL
                             </button>
                         )}
                     </li>
                 ))}
             </ul>
+            <button onClick={eliminarTodas} className="btn btn-danger">
+                Eliminar todas
+            </button>
         </div>
     );
 };
