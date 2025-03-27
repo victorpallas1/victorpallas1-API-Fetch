@@ -1,115 +1,134 @@
 import React, { useEffect, useState } from "react";
 
-
-
-// Crear tu primer componente
 const Home = () => {
-    const [newTarea, setNewTarea] = useState("");
+    const [newTodo, setNewTodo] = useState("");
     const [tareas, setTareas] = useState([]);
-    const [hoverIndex, setHoverIndex] = useState(null); // Para mostrar el botón al pasar el mouse
+    const [hoverIndex, setHoverIndex] = useState(null);
+    const [message, setMessage] = useState("");
+    const apiUrl = "https://playground.4geeks.com/todo";
+    const nombreUsuario ="Victor"
 
-    const getTodos= async() => {
+    async function loadTodos() {
         try {
-            const response = await fetch ('https://playground.4geeks.com/todo/users')
-            const data = await response.json()
-            setTareas(Array.isArray(data) ? data.map(item => item.label) : [])
-
-    
-            
+            let response = await fetch(apiUrl + "/users/Victor",);
+            if (!response.ok) {
+                setMessage(`Error ${response.status}: ${response.statusText}`);
+                setTimeout(() => setMessage(""), 5000);
+                return;
+            }
+            let dataJson = await response.json();
+            setTareas(dataJson.todos || []);
         } catch (error) {
-            console.log(error)
-            
+            setMessage("Hubo un problema al cargar las tareas.");
+            setTimeout(() => setMessage(""), 5000);
         }
     }
 
 
+    async function crearUsuario() {
+        let response = await fetch(apiUrl + "/users/"+ nombreUsuario , {
+            method: "POST",
+            headers: {"Content-Type": "application/json" },
+            body: JSON.stringify({nombreUsuario}),
+        });
 
-    function agregarTarea() {
-        if (newTarea.trim() === "") return; // Evita agregar tareas vacías
-        setTareas([...tareas, newTarea]);
-        setNewTarea(""); // Limpiar el input después de agregar
+        if (!response.ok) {
+            setMessage(`Error ${response.status}: ${response.statusText}`);
+            setTimeout(() => setMessage(""), 5000);
+            return;
+        }
     }
 
-    function eliminarTarea(index) {
-        const nuevasTareas = tareas.filter((_, i) => i !== index);
-        setTareas(nuevasTareas);
+    async function borrarUsuario() {
+        let response = await fetch(apiUrl + "/users/"+ nombreUsuario , {
+            method: "DELETE",
+            headers: {"Content-Type": "application/json" },
+            body: JSON.stringify({nombreUsuario}),
+        });
+
+        if (!response.ok) {
+            setMessage(`Error ${response.status}: ${response.statusText}`);
+            setTimeout(() => setMessage(""), 5000);
+            return;
+        }
     }
 
-    function eliminarTodas() {
-        setTareas([]); // Vacía la lista de tareas
+
+    async function addNewTodo() {
+        if (newTodo.trim() === "") return;
+
+        let response = await fetch(apiUrl + "/todos/Victor", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ label: newTodo, is_done: false }),
+        });
+
+        if (!response.ok) {
+            setMessage(`Error ${response.status}: ${response.statusText}`);
+            setTimeout(() => setMessage(""), 5000);
+            return;
+        }
+
+        setTareas([...tareas, { label: newTodo, is_done: false }]);
+        setNewTodo("");
+    }
+
+    async function deleteTodo(index) {
+        setTareas(tareas.filter((_, i) => i !== index));
     }
 
     useEffect(() => {
-        getTodos()
-    }, [])
-
-    fetch('https://playground.4geeks.com/todo/todos/Victor', {
-        method: "POST",
-        body: JSON.stringify(todo),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      })
-      .then(resp => {
-          console.log(resp.ok); // Será true si la respuesta es exitosa
-          console.log(resp.status); // El código de estado 201, 300, 400, etc.
-          console.log(resp.text()); // Intentará devolver el resultado exacto como string
-          return resp.json(); // Intentará parsear el resultado a JSON y retornará una promesa donde puedes usar .then para seguir con la lógica
-      })
-      .then(data => {
-          // Aquí es donde debe comenzar tu código después de que finalice la búsqueda
-          console.log(data); // Esto imprimirá en la consola el objeto exacto recibido del servidor
-      })
-      .catch(error => {
-          // Manejo de errores
-          console.log(error);
-      });
+        loadTodos();
+    }, []);
 
     return (
         <div className="m-auto text-center w-50">
-            <input
-                type="text"
-                value={newTarea}
-                onChange={(e) => setNewTarea(e.target.value)} 
-                onKeyDown={(e) => e.key === "Enter" && agregarTarea()} // Agregar tarea al presionar Enter
-                placeholder="Escribe tu tarea"
-                className="form-control mb-2"
-            />
-            <button onClick={agregarTarea} className="btn btn-primary">Agregar Tarea</button>
-
-            {/* Boton para consulta tareas de API*/}
-            <button onclick={getTodos} className="btn btn-info mb-3 ms-2">Cargar Tareas API</button>
-
-            <h2>{newTarea ? newTarea : ""}</h2>
+            {message && <div className="alert alert-danger">{message}</div>}
+            <h2>Lista de Tareas</h2>
 
             <ul className="list-group">
-                {tareas.map((tarea, index) => (
-                    <li
-                        key={index}
-                        className="list-group-item d-flex justify-content-between align-items-center"
-                        onMouseEnter={() => setHoverIndex(index)}
-                        onMouseLeave={() => setHoverIndex(null)}
-                    >
-                        {tarea}
-                        {hoverIndex === index && (
-                            <button
-                                className="btn btn-danger btn-sm"
-                                onClick={() => eliminarTarea(index)}
-                            >
-                                DELETE
-                            </button>
-                        )}
-                    </li>
-                ))}
+                {tareas.length === 0 ? (
+                    <p className="text-muted">No hay tareas disponibles.</p>
+                ) : (
+                    tareas.map((tarea, index) => (
+                        <li
+                            key={index}
+                            className="list-group-item d-flex justify-content-between align-items-center"
+                            onMouseEnter={() => setHoverIndex(index)}
+                            onMouseLeave={() => setHoverIndex(null)}
+                        >
+                            {tarea.label}
+                            {hoverIndex === index && (
+                                <button className="btn btn-danger btn-sm" onClick={() => deleteTodo(index)}>
+                                    Eliminar
+                                </button>
+                            )}
+                        </li>
+                    ))
+                )}
             </ul>
-            <p></p>
-            <span className="mb-3">Total: {tareas.length}</span>
-               
-            <button onClick={eliminarTodas} className="btn btn-danger">
-               Eliminar todas
-            </button>
+
+            <p className="mt-2"><strong>Total de tareas:</strong> {tareas.length}</p>
+
+            <input
+                type="text"
+                value={newTodo}
+                onChange={(e) => setNewTodo(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addNewTodo()}
+                placeholder="Escribe una nueva tarea"
+                className="form-control my-2"
+            />
+            <button onClick={addNewTodo} className="btn btn-primary me-2">Añadir</button>
+            <button onClick={loadTodos} className="btn btn-info">Cargar API</button>
+            <div className="m-auto text-center w-50">
+                <p></p>
+                <button onClick={crearUsuario} className="btn btn-primary">Crear lista Victor</button>
+                <p></p>
+                <button onClick={borrarUsuario} className="btn btn-danger btn-sm">Eliminar lista Victor</button>
+            </div>
         </div>
     );
 };
 
 export default Home;
+
